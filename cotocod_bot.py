@@ -9,14 +9,16 @@ from aiogram.types import Message
 from aiogram.utils import executor
 from aiogram.dispatcher.filters import Command
 
-API_TOKEN = tokens
-ADMIN_USER_ID = idd
+import os
+
+API_TOKEN = os.getenv("TOKEN")
+ADMIN_USER_ID = int(os.getenv("ADMIN_ID"))
+
 
 logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
-
 
 data_store = defaultdict(lambda: {'count': 0, 'total': 0.0})
 
@@ -59,6 +61,8 @@ async def send_report(user_id):
     report_lines = [f"Отчет за {today}\n"]
     total_sum = 0.0
 
+    logging.info(f"Формирование отчета. Всего менеджеров: {len(data_store)}")
+
     for manager, stats in data_store.items():
         report_lines.append(f"{manager} - {stats['total']:.0f} ₽")
         total_sum += stats['total']
@@ -66,16 +70,18 @@ async def send_report(user_id):
     if total_sum > 0:
         report_lines.append(f"\nОбщая сумма: {total_sum:.0f} ₽")
         report_text = "\n".join(report_lines)
-        await bot.send_message(user_id, report_text)
-        logging.info(f"Отчет отправлен пользователю {user_id}")
+        try:
+            await bot.send_message(user_id, report_text)
+            logging.info(f"Отчет отправлен пользователю {user_id}")
+        except Exception as e:
+            logging.error(f"Ошибка при отправке отчета: {e}")
     else:
         logging.info("Нет данных для отчета.")
-
     data_store.clear()
 
 async def daily_report_scheduler():
     while True:
-        now = datetime.utcnow() + timedelta(hours=3)  # UTC+3 = Москва
+        now = datetime.utcnow() + timedelta(hours=3)  # МСК
         target_time = now.replace(hour=23, minute=59, second=0, microsecond=0)
         if now >= target_time:
             target_time += timedelta(days=1)
@@ -85,7 +91,9 @@ async def daily_report_scheduler():
         await asyncio.sleep(wait_seconds)
         await send_report(ADMIN_USER_ID)
 
+async def on_startup(dispatcher):
+    logging.info("Бот запущен. Инициализация планировщика ежедневного отчета.")
+    asyncio.create_task(daily_report_scheduler())
+
 if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    loop.create_task(daily_report_scheduler())
-    executor.start_polling(dp, skip_updates=True)
+    executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
