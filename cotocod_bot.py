@@ -3,7 +3,6 @@ import logging
 import re
 from datetime import datetime, timedelta
 from collections import defaultdict
-from config import tokens, idd
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import Message
 from aiogram.utils import executor
