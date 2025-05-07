@@ -1,0 +1,19 @@
+# Секретные файлы
+config.py
+.env
+
+# Виртуальное окружение
+venv/
+.venv/
+
+# Кэш Python
+__pycache__/
+*.py[cod]
+
+# Логи и временные файлы
+*.log
+*.tmp
+
+# Файлы IDE
+.idea/
+.vscode/
